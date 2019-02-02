@@ -21,10 +21,11 @@ Link: [CIFAR_100_Dataset](https://www.cs.toronto.edu/~kriz/cifar.html)
 
 # Training Method:
 
-- Used convolutional neural nets
+ **Used convolutional neural nets**
 ![1 vkq0hxdaqv57salxajquxa](https://user-images.githubusercontent.com/6074821/52169534-a6b95780-2742-11e9-9a16-c0fab98bbd1b.jpeg)
 
-- Used the following architecture
+ **Used the following architecture:**
+ 
  Conv layer 1: 32 filters with size of 7x7.
  Max Pooling layer: filter size 2x2.
  BatchNorm layer.
@@ -49,16 +50,17 @@ Link: [CIFAR_100_Dataset](https://www.cs.toronto.edu/~kriz/cifar.html)
  Fully connected layer 2: 1024 hidden neurons
  Fully connected layer 3: 1024 hidden neurons
  
- -Used Adam Optimizer
- -Used learning rate decay
- -Used mini batch of size 32
- -Used xavier weight initialization
- -Used relu activation in hidden states
- -Used softmax with cross entropy in output
- -Used early stopping 
+ **Additional details:**
+ Used Adam Optimizer
+ Used learning rate decay
+ Used mini batch of size 32
+ Used xavier weight initialization
+ Used relu activation in hidden states
+ Used softmax with cross entropy in output
+ Used early stopping 
  
 # Results:
-Ongoing..
+ Ongoing..
 
 # Usage:
 Here we will discuss how to run the project and what each file is responsible of:
