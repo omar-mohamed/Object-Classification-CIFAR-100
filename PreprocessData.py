@@ -15,14 +15,18 @@ test_dec = unpickle('./cifar-100-python/test')
 meta = unpickle('./cifar-100-python/meta')
 
 
-def rgb2gray(img):
-    return np.dot(np.array(img, dtype='float32'), [0.299, 0.587, 0.114])
+def rgb2gray(dataset):
+    return np.dot(np.array(dataset, dtype='float32'), [0.299, 0.587, 0.114])
 
 
-def normalization(img):
-    im = rgb2gray(img)
+def normalization(dataset):
+    # img = rgb2gray(img)
     pixel_depth = 255.0
-    return (np.array(im, dtype='float32') - (pixel_depth / 2)) / (pixel_depth / 2)
+    # mean=np.mean(dataset,axis=3)
+    # std = np.std(dataset, axis=3)
+    # norm_image = cv2.normalize(dataset, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+
+    return (np.array(dataset, dtype='float32') - (pixel_depth / 2)) / (pixel_depth / 2)
 
 
 def reshape(dataset):
@@ -69,7 +73,7 @@ disp_sample_dataset(train_data, train_labels, label_names)
 def get_valid_set(dataset, labels, count_per_class=20, num_classes=100):
     counter = np.zeros((num_classes), dtype='int32')
     valid_size = count_per_class * num_classes
-    valid_dataset = np.zeros((valid_size, 32, 32), dtype='float32')
+    valid_dataset = np.zeros((valid_size, 32, 32,3), dtype='float32')
     valid_labels = np.zeros((valid_size), dtype='int32')
 
     valid_index = 0

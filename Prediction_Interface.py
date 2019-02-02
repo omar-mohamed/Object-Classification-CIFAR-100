@@ -9,7 +9,7 @@ import numpy as np
 
 class Window(Frame):
     image_size = 32
-    num_of_channels = 1
+    num_of_channels = 3
     prediction_label = -1
     label_names = -1
     model_saver = -1
@@ -63,8 +63,7 @@ class Window(Frame):
         self.model_saver = tf.train.import_meta_graph('./best_model/saved_model/model.ckpt.meta')
 
     def normalization(self, img):
-        img = img.resize((self.image_size, self.image_size), Image.ANTIALIAS)
-        img = self.rgb2gray(img)  # RGB to greyscale
+        # img = self.rgb2gray(img)  # RGB to greyscale
         pixel_depth = 255.0
         return (np.array(img, dtype='float32') - (pixel_depth / 2)) / (pixel_depth / 2)
 
@@ -83,13 +82,15 @@ class Window(Frame):
             self.model_saver.restore(sess, tf.train.latest_checkpoint('./best_model/saved_model/'))
             graph = sess.graph
             one_input = graph.get_tensor_by_name("tf_inputs:0")
-            keep_prob = graph.get_tensor_by_name("fully_connected_keep_prob:0")
+            fc_keep_prob = graph.get_tensor_by_name("fully_connected_keep_prob:0")
+            conv_keep_prob = graph.get_tensor_by_name("conv_keep_prob:0")
+
             is_training = graph.get_tensor_by_name("is_training:0")
             prediction = graph.get_tensor_by_name("tf_predictions:0")
 
             # print([node.name for node in graph.as_graph_def().node])
 
-            feed_dict = {one_input: img, keep_prob: 1, is_training: False}
+            feed_dict = {one_input: img, fc_keep_prob: 1, conv_keep_prob: 1, is_training: False}
             pred = sess.run(
                 [prediction], feed_dict=feed_dict)
             max_class = np.argmax(pred)
@@ -100,18 +101,16 @@ class Window(Frame):
         filename = askopenfilename()
         print(filename)
         im = Image.open(filename)
-        img_label_size = 200
-        resized = im.resize((img_label_size, img_label_size), Image.ANTIALIAS)
+        image_view_size = 200
+        resized = im.resize((image_view_size, image_view_size), Image.ANTIALIAS)
         render = ImageTk.PhotoImage(resized)
-        im = self.normalization(im)
-        # plt.imshow(im)
-        # plt.show()
-        # labels can be text or images
-        im = Image.fromarray(im.astype('float32'))
-        img = Label(self, image=render, width=img_label_size, height=img_label_size)
+        im = im.resize((self.image_size, self.image_size), Image.ANTIALIAS)
+        im_norm = self.normalization(im)
+
+        img = Label(self, image=render, width=image_view_size, height=image_view_size)
         img.image = render
         img.place(x=200, y=100)
-        prediction = self.classifyImages(im).decode("utf-8")
+        prediction = self.classifyImages(im_norm).decode("utf-8")
         self.showText(prediction)
 
     def showText(self, message="hello"):

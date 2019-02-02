@@ -25,7 +25,7 @@ del all_data
 #################Format train and test data###################
 
 
-num_channels = 1  # grayscale
+num_channels = 3
 image_size = 32
 
 
@@ -69,21 +69,21 @@ def accuracy(predictions, labels):
 
 
 images_labels = 100  # the labels' length for the classifier
-batch_size = 20  # the number of training samples in a single iteration
+batch_size = 32  # the number of training samples in a single iteration
 test_batch_size = 50  # used to calculate test predictions over many iterations to avoid memory issues
 patch_size_1 = 7  # convolution filter size 1
 patch_size_2 = 5  # convolution filter size 2
 patch_size_3 = 3  # convolution filter size 3
 patch_size_4 = 1  # convolution filter size 4
 
-depth1 = 32  # number of filters in first conv layer
-depth2 = 64  # number of filters in second conv layer
-depth3 = 128  # number of filters in third conv layer
-depth4 = 256  # number of filters in first conv layer
+depth1 = 64  # number of filters in first conv layer
+depth2 = 128  # number of filters in second conv layer
+depth3 = 256  # number of filters in third conv layer
+depth4 = 512  # number of filters in first conv layer
 
-num_hidden1 = 1024  # the size of the unrolled vector after convolution
-num_hidden2 = 128  # the size of the hidden neurons in fully connected layer
-num_hidden3 = 1024  # the size of the hidden neurons in fully connected layer
+num_hidden1 = 2048  # the size of the unrolled vector after convolution
+num_hidden2 = 2048  # the size of the hidden neurons in fully connected layer
+num_hidden3 = 2048  # the size of the hidden neurons in fully connected layer
 regularization_lambda = 4e-2  # used in case of L2 regularization
 
 graph = tf.Graph()
@@ -98,7 +98,10 @@ with graph.as_default():
 
     fully_connected_keep_prob = tf.placeholder(tf.float32, name='fully_connected_keep_prob')
 
-    is_training = tf.placeholder(tf.bool, name='is_training')
+    conv_keep_prob = tf.placeholder(tf.float32, name='conv_keep_prob')
+
+
+    is_training_ph = tf.placeholder(tf.bool, name='is_training')
 
 
     def get_conv_weight(name, shape):
@@ -136,7 +139,7 @@ with graph.as_default():
 
 
     # method that runs one hidden layer with batch normalization and dropout
-    def run_hidden_layer(x, hidden_weights, keep_dropout_rate=1, use_relu=True, is_training=False):
+    def run_hidden_layer(x, hidden_weights, keep_dropout_rate=1, use_activation=True):
         hidden = tf.matmul(x, hidden_weights)
 
         hidden = tf.layers.batch_normalization(
@@ -146,10 +149,10 @@ with graph.as_default():
             epsilon=0.001,
             center=True,
             scale=True,
-            training=is_training
+            training=is_training_ph
         )
 
-        if use_relu:
+        if use_activation:
             hidden = tf.nn.relu(hidden)
         hidden = tf.nn.dropout(hidden, keep_dropout_rate)
         return hidden
@@ -166,37 +169,39 @@ with graph.as_default():
             epsilon=0.001,
             center=True,
             scale=True,
-            training=is_training
+            training=is_training_ph
         )
-        return tf.nn.relu(conv)
+        conv = tf.nn.relu(conv)
+        conv = tf.nn.dropout(conv, conv_keep_prob)
+        return conv
 
 
     # Model.
-    def model(data, keep_dropout_rate=1):
+    def model(data):
         hidden = data
         # first conv block
         hidden = run_conv_layer(hidden, conv1_weights)
         # second conv block
         hidden = run_conv_layer(hidden, conv2_weights)
-        # second conv block
+        # third conv block
         hidden = run_conv_layer(hidden, conv3_weights)
-        # second conv block
+        # fourth conv block
         hidden = run_conv_layer(hidden, conv4_weights)
         # flatten
         hidden = tf.contrib.layers.flatten(hidden)
 
         #  classifier
-        # hidden = run_hidden_layer(hidden, hidden1_weights_c1, keep_dropout_rate, True)
-        #
-        # hidden = run_hidden_layer(hidden, hidden2_weights_c1, keep_dropout_rate, True)
+        hidden = run_hidden_layer(hidden, hidden1_weights_c1, fully_connected_keep_prob, use_activation=True)
 
-        hidden = run_hidden_layer(hidden, hidden3_weights_c1, 1, False)
+        hidden = run_hidden_layer(hidden, hidden2_weights_c1, fully_connected_keep_prob, use_activation=True)
+
+        hidden = run_hidden_layer(hidden, hidden3_weights_c1, 1, use_activation=False)
 
         return hidden
 
 
     # Training computation.
-    logits = model(tf_inputs, fully_connected_keep_prob)
+    logits = model(tf_inputs)
 
     # loss of softmax with cross entropy
 
@@ -211,7 +216,7 @@ with graph.as_default():
         # tf.train.exponential_decay(learning_rate, global_step, decay_steps, decay_rate, staircase=False, name=None)
         # decayed_learning_rate = learning_rate *decay_rate ^ (global_step / decay_steps)
         global_step = tf.Variable(0, trainable=False)
-        learning_rate = tf.train.exponential_decay(0.0001, global_step, 10000, 0.50, staircase=True)
+        learning_rate = tf.train.exponential_decay(0.0005, global_step, 7000, 0.80, staircase=True)
 
         # Optimizer.
         optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
@@ -246,6 +251,7 @@ valid_accuracy = []
 valid_accuracy_iteration = []
 
 test_accuracy = 0
+early_stop_counter = 3
 
 print("Training CNN")
 
@@ -263,11 +269,11 @@ with tf.Session(graph=graph, config=tf.ConfigProto(log_device_placement=True)) a
         batch_labels = train_labels[offset:(offset + batch_size)]
 
         # train on batch and get accuracy and loss
-        feed_dict = {tf_inputs: batch_data, tf_labels: batch_labels, fully_connected_keep_prob: 0.75, is_training: True}
+        feed_dict = {tf_inputs: batch_data, tf_labels: batch_labels, fully_connected_keep_prob: 0.5, conv_keep_prob:0.9, is_training_ph: True}
         _, l, predictions, lr = session.run(
             [optimize, tf_loss, tf_predictions, learning_rate], feed_dict=feed_dict)
 
-        if (step % 50 == 0):
+        if (step % 200 == 0):
             print('Learning rate at step %d: %.14f' % (step, lr))
             print('Minibatch loss at step %d: %f' % (step, l))
             batch_train_accuracy, _ = accuracy(np.argmax(predictions, axis=1), batch_labels)
@@ -277,9 +283,9 @@ with tf.Session(graph=graph, config=tf.ConfigProto(log_device_placement=True)) a
             train_accuracy.append(batch_train_accuracy)
             train_accuracy_iteration.append(step)
 
-        if (step % 500 == 0):
-            feed_dict = {tf_inputs: valid_data, tf_labels: valid_labels, fully_connected_keep_prob: 1.0,
-                         is_training: False}
+        if (step % 1000 == 0):
+            feed_dict = {tf_inputs: valid_data, tf_labels: valid_labels, fully_connected_keep_prob: 1.0,  conv_keep_prob:1.0,
+                         is_training_ph: False}
             l, predictions = session.run(
                 [tf_loss, tf_predictions], feed_dict=feed_dict)
             print('validation set loss at step %d: %f' % (step, l))
@@ -289,6 +295,17 @@ with tf.Session(graph=graph, config=tf.ConfigProto(log_device_placement=True)) a
             valid_loss_iteration.append(step)
             valid_accuracy.append(acc)
             valid_accuracy_iteration.append(step)
+            size = len(valid_loss)
+            if size > 3:
+                should_stop = True
+                for i in range(early_stop_counter+1):
+                    if l < valid_loss[size-1-i]:
+                        should_stop = False
+                        break
+                if should_stop:
+                    print("Early stopping.")
+                    break
+
 
     # get test predictions in steps to avoid memory problems
 
@@ -297,7 +314,7 @@ with tf.Session(graph=graph, config=tf.ConfigProto(log_device_placement=True)) a
     for step in range(int(test_size / test_batch_size)):
         offset = (step * test_batch_size) % (test_size - test_batch_size)
         batch_data = test_data[offset:(offset + test_batch_size), :]
-        feed_dict = {tf_inputs: batch_data, fully_connected_keep_prob: 1.0, is_training: False}
+        feed_dict = {tf_inputs: batch_data, fully_connected_keep_prob: 1.0, is_training_ph: False, conv_keep_prob:1.0}
         predictions = session.run(
             tf_predictions, feed_dict=feed_dict)
 
@@ -340,8 +357,8 @@ def disp_prediction_samples(predictions, dataset, num_images, cmap=None):
         for i, item in enumerate(items):
             plt.subplot(2, 4, i + 1)
             plt.axis('off')
-            plt.title(label_names[predictions[i]])
-            plt.imshow(dataset[item, :, :, 0], cmap=cmap)
+            plt.title(label_names[predictions[item]])
+            plt.imshow(dataset[item, :, :], cmap=cmap)
         plt.savefig('./output_images/' + 'predictions' + str(image_num + 1) + '.png')
         # plt.show()
 

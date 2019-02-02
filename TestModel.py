@@ -13,7 +13,7 @@ test_labels = all_data['test_labels']
 
 del all_data
 
-num_channels = 1  # grayscale
+num_channels = 3  # grayscale
 image_size = 32
 
 
@@ -43,7 +43,9 @@ with tf.Session() as sess:
     model_saver.restore(sess, tf.train.latest_checkpoint('./best_model/saved_model/'))
     graph = sess.graph
     inputs = graph.get_tensor_by_name("tf_inputs:0")
-    keep_prob = graph.get_tensor_by_name("fully_connected_keep_prob:0")
+    fc_keep_prob = graph.get_tensor_by_name("fully_connected_keep_prob:0")
+    conv_keep_prob = graph.get_tensor_by_name("conv_keep_prob:0")
+
     is_training = graph.get_tensor_by_name("is_training:0")
     tf_predictions = graph.get_tensor_by_name("tf_predictions:0")
 
@@ -55,7 +57,7 @@ with tf.Session() as sess:
     for step in range(int(test_size / test_batch_size)):
         offset = (step * test_batch_size) % (test_size - test_batch_size)
         batch_data = test_data[offset:(offset + test_batch_size), :]
-        feed_dict = {inputs: batch_data, keep_prob: 1.0, is_training: False}
+        feed_dict = {inputs: batch_data, fc_keep_prob: 1.0, conv_keep_prob: 1.0, is_training: False}
         predictions = sess.run(
             tf_predictions, feed_dict=feed_dict)
 
