@@ -24,40 +24,40 @@ Link: [CIFAR_100_Dataset](https://www.cs.toronto.edu/~kriz/cifar.html)
  **Used convolutional neural nets**
 ![1 vkq0hxdaqv57salxajquxa](https://user-images.githubusercontent.com/6074821/52169534-a6b95780-2742-11e9-9a16-c0fab98bbd1b.jpeg)
 
- **Used the following architecture:**
+ **Used the following architecture:** <br/>
  
- Conv layer 1: 32 filters with size of 7x7.
- Max Pooling layer: filter size 2x2.
- BatchNorm layer.
- Dropout with Keep prob : 0.9.
+ Conv layer 1: 32 filters with size of 7x7. <br/>
+ Max Pooling layer: filter size 2x2. <br/>
+ BatchNorm layer. <br/>
+ Dropout with Keep prob : 0.9. <br/>
  
- Conv layer 2: 64 filters with size of 5x5.
- Max Pooling layer: filter size 2x2.
- BatchNorm layer.
- Dropout with Keep prob : 0.9.
+ Conv layer 2: 64 filters with size of 5x5. <br/>
+ Max Pooling layer: filter size 2x2. <br/>
+ BatchNorm layer. <br/>
+ Dropout with Keep prob : 0.9. <br/>
  
- Conv layer 3: 128 filters with size of 3x3.
- Max Pooling layer: filter size 2x2.
- BatchNorm layer.
- Dropout with Keep prob : 0.9.
+ Conv layer 3: 128 filters with size of 3x3. <br/>
+ Max Pooling layer: filter size 2x2. <br/>
+ BatchNorm layer. <br/>
+ Dropout with Keep prob : 0.9. <br/>
  
- Conv layer 4: 256 filters with size of 1x1.
- Max Pooling layer: filter size 2x2.
- BatchNorm layer.
- Dropout with Keep prob : 0.9.
+ Conv layer 4: 256 filters with size of 1x1. <br/>
+ Max Pooling layer: filter size 2x2. <br/>
+ BatchNorm layer. <br/>
+ Dropout with Keep prob : 0.9. <br/>
  
- Fully connected layer 1: 1024 hidden neurons
- Fully connected layer 2: 1024 hidden neurons
- Fully connected layer 3: 1024 hidden neurons
+ Fully connected layer 1: 1024 hidden neurons <br/>
+ Fully connected layer 2: 1024 hidden neurons <br/>
+ Fully connected layer 3: 1024 hidden neurons <br/>
  
- **Additional details:**
- Used Adam Optimizer
- Used learning rate decay
- Used mini batch of size 32
- Used xavier weight initialization
- Used relu activation in hidden states
- Used softmax with cross entropy in output
- Used early stopping 
+ **Additional details:** <br/>
+ Used Adam Optimizer <br/>
+ Used learning rate decay <br/>
+ Used mini batch of size 32 <br/>
+ Used xavier weight initialization <br/>
+ Used relu activation in hidden states <br/>
+ Used softmax with cross entropy in output <br/>
+ Used early stopping <br/>
  
 # Results:
  Ongoing..
@@ -74,7 +74,7 @@ This script will extract the CIFAR-100 dataset.
 ### PreprocessData.py:
 This script will load the data, normalize it, shuffle it, take 2k images from training as dev set, and save it in a pickle file.
 
-### TrainData.py:
+### TrainModel.py:
 This script will begin training on the training data and output the results(including on test set after it finishes training) and save the accuracy and loss graphs in output_images folder, and save the graph info for tensor board in graph_info folder, and save the model itself in saved_model
 
 ### TestModel.py:
