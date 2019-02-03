@@ -71,10 +71,12 @@ def accuracy(predictions, labels):
 images_labels = 100  # the labels' length for the classifier
 batch_size = 32  # the number of training samples in a single iteration
 test_batch_size = 50  # used to calculate test predictions over many iterations to avoid memory issues
+valid_batch_size = 50  # used to calculate validation predictions over many iterations to avoid memory issues
+
 patch_size_1 = 7  # convolution filter size 1
 patch_size_2 = 5  # convolution filter size 2
 patch_size_3 = 3  # convolution filter size 3
-patch_size_4 = 1  # convolution filter size 4
+patch_size_4 = 3  # convolution filter size 4
 
 depth1 = 64  # number of filters in first conv layer
 depth2 = 128  # number of filters in second conv layer
@@ -93,26 +95,30 @@ with graph.as_default():
     tf_inputs = tf.placeholder(
         tf.float32, shape=(None, image_size, image_size, num_channels), name='tf_inputs')
 
-    # label for each image
+    # labels
     tf_labels = tf.placeholder(tf.int32, shape=None, name='tf_labels')
 
+    # dropout keep probability of fully connected layers
     fully_connected_keep_prob = tf.placeholder(tf.float32, name='fully_connected_keep_prob')
 
+    # dropout keep probability of conv layers
     conv_keep_prob = tf.placeholder(tf.float32, name='conv_keep_prob')
 
-
+    # boolean to determine if in training mode (used in batch norm)
     is_training_ph = tf.placeholder(tf.bool, name='is_training')
 
 
+    #a method to return convolutional weights
     def get_conv_weight(name, shape):
         return tf.get_variable(name, shape=shape,
                                initializer=tf.contrib.layers.xavier_initializer_conv2d())
 
+    #a method to return bias variable
 
     def get_bias_variable(name, shape):
         return tf.Variable(tf.constant(1.0, shape=shape), name=name)
 
-
+    #a method to return fully connected weights
     def get_fully_connected_weight(name, shape):
         weights = tf.get_variable(name, shape=shape,
                                   initializer=tf.contrib.layers.xavier_initializer())
@@ -138,7 +144,7 @@ with graph.as_default():
     hidden3_weights_c1 = get_fully_connected_weight('hidden3_weights', [num_hidden3, images_labels])
 
 
-    # method that runs one hidden layer with batch normalization and dropout
+    # method that runs one fully connected layer with batch normalization and dropout
     def run_hidden_layer(x, hidden_weights, keep_dropout_rate=1, use_activation=True):
         hidden = tf.matmul(x, hidden_weights)
 
@@ -190,7 +196,7 @@ with graph.as_default():
         # flatten
         hidden = tf.contrib.layers.flatten(hidden)
 
-        #  classifier
+        #  fully connected layers
         hidden = run_hidden_layer(hidden, hidden1_weights_c1, fully_connected_keep_prob, use_activation=True)
 
         hidden = run_hidden_layer(hidden, hidden2_weights_c1, fully_connected_keep_prob, use_activation=True)
@@ -204,7 +210,6 @@ with graph.as_default():
     logits = model(tf_inputs)
 
     # loss of softmax with cross entropy
-
     tf_loss = tf.reduce_mean(
         tf.nn.sparse_softmax_cross_entropy_with_logits(labels=tf_labels, logits=logits))
 
@@ -251,7 +256,7 @@ valid_accuracy = []
 valid_accuracy_iteration = []
 
 test_accuracy = 0
-early_stop_counter = 3
+early_stop_counter = 3 # stop if validation loss is not decreasing for early_stop_counter iterations
 
 print("Training CNN")
 
@@ -261,70 +266,91 @@ with tf.Session(graph=graph, config=tf.ConfigProto(log_device_placement=True)) a
     saver = tf.train.Saver()
     writer = tf.summary.FileWriter('./graph_info', session.graph)
 
+
+    # method to return accuracy and loss over the sent dataset in steps
+    def getAccuracyAndLoss(dataset, labels, batch_size):
+        data_size = dataset.shape[0]
+        pred = np.zeros((data_size, images_labels))
+        overall_loss = 0
+        for step in range(int(data_size / batch_size)):
+            offset = (step * data_size) % (data_size - batch_size)
+            batch_labels = labels[offset:(offset + batch_size)]
+
+            batch_data = dataset[offset:(offset + batch_size), :]
+            feed_dict = {tf_inputs: batch_data, tf_labels: batch_labels, fully_connected_keep_prob: 1.0,
+                         is_training_ph: False,
+                         conv_keep_prob: 1.0}
+            predictions, l = session.run(
+                [tf_predictions, tf_loss], feed_dict=feed_dict)
+
+            pred[offset:offset + batch_size, :] = predictions
+            overall_loss = overall_loss + l
+        # calculate accuracy and loss
+        overall_loss = overall_loss / (data_size / batch_size)
+        overall_acc, predictions = accuracy(np.argmax(pred, axis=1), labels)
+        return overall_acc, overall_loss, predictions
+
+
     print('Initialized')
     for step in range(num_steps):
-        offset = (step * batch_size) % (train_size - batch_size)
 
+        # get mini-batch
+        offset = (step * batch_size) % (train_size - batch_size)
         batch_data = train_data[offset:(offset + batch_size), :]
         batch_labels = train_labels[offset:(offset + batch_size)]
 
         # train on batch and get accuracy and loss
-        feed_dict = {tf_inputs: batch_data, tf_labels: batch_labels, fully_connected_keep_prob: 0.5, conv_keep_prob:0.9, is_training_ph: True}
+        feed_dict = {tf_inputs: batch_data, tf_labels: batch_labels, fully_connected_keep_prob: 0.5,
+                     conv_keep_prob: 0.85, is_training_ph: True}
         _, l, predictions, lr = session.run(
             [optimize, tf_loss, tf_predictions, learning_rate], feed_dict=feed_dict)
 
+        # print results on mini-batch every 200 iteration
         if (step % 200 == 0):
             print('Learning rate at step %d: %.14f' % (step, lr))
             print('Minibatch loss at step %d: %f' % (step, l))
             batch_train_accuracy, _ = accuracy(np.argmax(predictions, axis=1), batch_labels)
             print('Minibatch accuracy: %.1f%%' % batch_train_accuracy)
+            #save data for plotting
             training_loss.append(l)
             training_loss_iteration.append(step)
             train_accuracy.append(batch_train_accuracy)
             train_accuracy_iteration.append(step)
 
+        # calculate validation loss and accuracy every 2000 iterations
         if (step % 1000 == 0):
-            feed_dict = {tf_inputs: valid_data, tf_labels: valid_labels, fully_connected_keep_prob: 1.0,  conv_keep_prob:1.0,
-                         is_training_ph: False}
-            l, predictions = session.run(
-                [tf_loss, tf_predictions], feed_dict=feed_dict)
-            print('validation set loss at step %d: %f' % (step, l))
-            acc, _ = accuracy(np.argmax(predictions, axis=1), valid_labels)
+            acc, overall_valid_loss, _ = getAccuracyAndLoss(valid_data, valid_labels, valid_batch_size)
+            print('validation set loss at step %d: %f' % (step, overall_valid_loss))
             print('validation set accuracy: %.1f%%' % acc)
-            valid_loss.append(l)
+
+            #used for plotting
+            valid_loss.append(overall_valid_loss)
             valid_loss_iteration.append(step)
             valid_accuracy.append(acc)
             valid_accuracy_iteration.append(step)
+
+            # early stopping checking
             size = len(valid_loss)
-            if size > 3:
+            if size > early_stop_counter:
                 should_stop = True
-                for i in range(early_stop_counter+1):
-                    if l < valid_loss[size-1-i]:
+                for i in range(early_stop_counter + 1):
+                    if l < valid_loss[size - 1 - i]:
                         should_stop = False
                         break
                 if should_stop:
                     print("Early stopping.")
                     break
 
-
-    # get test predictions in steps to avoid memory problems
-
-    test_pred = np.zeros((test_size, images_labels))
-
-    for step in range(int(test_size / test_batch_size)):
-        offset = (step * test_batch_size) % (test_size - test_batch_size)
-        batch_data = test_data[offset:(offset + test_batch_size), :]
-        feed_dict = {tf_inputs: batch_data, fully_connected_keep_prob: 1.0, is_training_ph: False, conv_keep_prob:1.0}
-        predictions = session.run(
-            tf_predictions, feed_dict=feed_dict)
-
-        test_pred[offset:offset + test_batch_size, :] = predictions
-
-    # calculate test accuracy and save the model
-
-    test_accuracy, test_predictions = accuracy(np.argmax(test_pred, axis=1), test_labels)
     writer.close()
     saver.save(session, "./saved_model/model.ckpt")
+
+    # get overall train predictions in steps to avoid memory problems
+    print("Calculating results over all training set...")
+    overall_train_accuracy, overall_train_loss, _ = getAccuracyAndLoss(train_data, train_labels, batch_size)
+
+    # get test predictions in steps to avoid memory problems
+    print("Calculating results over all test set....")
+    test_accuracy, test_loss, test_predictions = getAccuracyAndLoss(test_data, test_labels, test_batch_size)
 
 
 ###############################Plot Results and save images##############################
@@ -350,7 +376,12 @@ plot_x_y(valid_loss_iteration, valid_loss, 'valid_loss.png', 'iteration', 'valid
 
 plot_x_y(valid_accuracy_iteration, valid_accuracy, 'valid_acc.png', 'iteration', 'validation accuracy')
 
+# a method to return values of normalized images to range [0,255]. Used when plotting or saving images
+def denormalization(dataset):
+    pixel_depth = 255.0
+    return np.array(dataset * (pixel_depth / 2) + (pixel_depth / 2), dtype='uint8')
 
+# a method to display and save a sample of the predictions from test set
 def disp_prediction_samples(predictions, dataset, num_images, cmap=None):
     for image_num in range(num_images):
         items = random.sample(range(dataset.shape[0]), 8)
@@ -358,11 +389,16 @@ def disp_prediction_samples(predictions, dataset, num_images, cmap=None):
             plt.subplot(2, 4, i + 1)
             plt.axis('off')
             plt.title(label_names[predictions[item]])
-            plt.imshow(dataset[item, :, :], cmap=cmap)
+            plt.imshow(denormalization(dataset[item, :, :]), cmap=cmap, interpolation='none')
         plt.savefig('./output_images/' + 'predictions' + str(image_num + 1) + '.png')
         # plt.show()
 
 
 disp_prediction_samples(test_predictions, test_data, 10)
 
+print('Overall training accuracy: %.1f%%' % overall_train_accuracy)
+print('Overall training loss: %.4f' % overall_train_loss)
+print('Validation accuracy: %.1f%%' % valid_accuracy[len(valid_accuracy) - 1])
+print('Validation loss: %.4f' % valid_loss[len(valid_loss) - 1])
 print('Test accuracy: %.1f%%' % test_accuracy)
+print('Test loss: %.4f' % test_loss)

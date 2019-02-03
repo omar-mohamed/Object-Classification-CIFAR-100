@@ -19,6 +19,4 @@ def maybe_extract(filename, force=False):
 
 dataset = os.path.join(data_root, 'cifar-100-python.tar.gz')
 
-
-
 maybe_extract(dataset)

@@ -8,11 +8,11 @@ import numpy as np
 
 
 class Window(Frame):
-    image_size = 32
-    num_of_channels = 3
-    prediction_label = -1
-    label_names = -1
-    model_saver = -1
+    image_size = 32 # width and height of image
+    num_of_channels = 3 # number of channels in an images
+    prediction_label = -1 # prediction from classifier
+    label_names = -1  # names of label indices
+    model_saver = -1 # model to be loaded
 
     # Define settings upon initialization. Here you can specify
     def __init__(self, master=None):
@@ -25,6 +25,7 @@ class Window(Frame):
         # with that, we want to then run init_window, which doesn't yet exist
         self.init_window()
 
+        # load label names
         all_data = pickle.load(open('CIFAR_100_normalized.pickle', 'rb'))
         self.label_names = all_data['label_names']
 
@@ -60,25 +61,30 @@ class Window(Frame):
 
         self.prediction_label = Label(self, text="", font=("Helvetica", 16))
         self.prediction_label.pack()
+        # importing best model
         self.model_saver = tf.train.import_meta_graph('./best_model/saved_model/model.ckpt.meta')
 
+    # a method to normalize values to range [-1,1]
     def normalization(self, img):
         # img = self.rgb2gray(img)  # RGB to greyscale
         pixel_depth = 255.0
-        return (np.array(img, dtype='float32') - (pixel_depth / 2)) / (pixel_depth / 2)
+        img=np.array(img)
+        return (np.array(img[:,:,:self.num_of_channels], dtype='float32') - (pixel_depth / 2)) / (pixel_depth / 2)
 
     def rgb2gray(self, img):
         return np.dot(np.array(img, dtype='float32'), [0.299, 0.587, 0.114])
 
+    # a method to return dataset in format [num_images,image_width,image_height,num_channels]
     def formatForFeedForward(self, dataset):
         dataset = np.reshape(dataset,
                              (-1, self.image_size, self.image_size, self.num_of_channels)).astype(np.float32)
         return dataset
 
+    # a method to classify the image
     def classifyImages(self, img):
         img = self.formatForFeedForward(img)
         with tf.Session() as sess:
-            # new_saver = tf.train.import_meta_graph('./best_model/saved_model/model.ckpt.meta')
+            # restore and feed forward
             self.model_saver.restore(sess, tf.train.latest_checkpoint('./best_model/saved_model/'))
             graph = sess.graph
             one_input = graph.get_tensor_by_name("tf_inputs:0")
@@ -97,6 +103,7 @@ class Window(Frame):
             prediction_str = self.label_names[max_class]
             return prediction_str
 
+    # a method to show image and preprocess it and classify it
     def showImg(self):
         filename = askopenfilename()
         print(filename)
@@ -113,6 +120,7 @@ class Window(Frame):
         prediction = self.classifyImages(im_norm).decode("utf-8")
         self.showText(prediction)
 
+    # a method to show prediction
     def showText(self, message="hello"):
         self.prediction_label.config(text="Prediction: " + message)
 

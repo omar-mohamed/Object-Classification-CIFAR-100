@@ -13,9 +13,10 @@ test_labels = all_data['test_labels']
 
 del all_data
 
+#################Format test data###################
+
 num_channels = 3  # grayscale
 image_size = 32
-
 
 def reformat(dataset):
     dataset = dataset.reshape(
@@ -25,6 +26,10 @@ def reformat(dataset):
 test_data = reformat(test_data)
 
 test_size = test_data.shape[0]
+
+
+
+#################Feedforward###################
 
 test_batch_size = 50  # used to calculate test predictions over many iterations to avoid memory issues
 images_labels = 100  # the labels' length for the classifier
@@ -39,6 +44,7 @@ def accuracy(predictions, labels):
 
 
 with tf.Session() as sess:
+    #load model
     model_saver = tf.train.import_meta_graph('./best_model/saved_model/model.ckpt.meta')
     model_saver.restore(sess, tf.train.latest_checkpoint('./best_model/saved_model/'))
     graph = sess.graph
@@ -52,7 +58,6 @@ with tf.Session() as sess:
     # print([node.name for node in graph.as_graph_def().node])
 
     # get test predictions in steps to avoid memory problems
-
     test_pred = np.zeros((test_size, images_labels))
     for step in range(int(test_size / test_batch_size)):
         offset = (step * test_batch_size) % (test_size - test_batch_size)
@@ -63,8 +68,7 @@ with tf.Session() as sess:
 
         test_pred[offset:offset + test_batch_size, :] = predictions
 
-    # calculate test accuracy and save the model
-
+    # calculate test accuracy
     test_accuracy, test_predictions = accuracy(np.argmax(test_pred, axis=1), test_labels)
 
     print('Test accuracy: %.1f%%' % test_accuracy)
