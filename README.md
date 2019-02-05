@@ -14,8 +14,8 @@ Link: [CIFAR_100_Dataset](https://www.cs.toronto.edu/~kriz/cifar.html)
 ![plt](https://user-images.githubusercontent.com/6074821/52181190-11789a80-27f8-11e9-8104-7751bfce2e18.png)
 
 ### Dataset Splitting:
-- 48k Image as a training set
-- 2k Image as a dev set
+- 50k Image as a training set
+- 2k Image as a dev set (a subset of the test set)
 - 10k as a test set
 
 # Preprocessing:
@@ -43,38 +43,42 @@ Link: [CIFAR_100_Dataset](https://www.cs.toronto.edu/~kriz/cifar.html)
  BatchNorm layer. <br/>
  Dropout with Keep prob : 0.85. <br/>
  
- Conv layer 4: 512 filters with size of 1x1. <br/>
+ Conv layer 4: 512 filters with size of 3x3. <br/>
  Max Pooling layer: filter size 2x2. <br/>
  BatchNorm layer. <br/>
  Dropout with Keep prob : 0.85. <br/>
  
  Fully connected layer 1: 2048 hidden neurons <br/>
+ Dropout with Keep prob : 0.5. <br/>
  Fully connected layer 2: 2048 hidden neurons <br/>
+ Dropout with Keep prob : 0.5. <br/>
  Fully connected layer 3: 2048 hidden neurons <br/>
- 
+ Dropout with Keep prob : 0.5. <br/>
+
  **Additional details:** <br/>
  Used Adam Optimizer <br/>
  Used learning rate decay <br/>
- Used mini batch of size 32 <br/>
+ Used mini batch of size 40 <br/>
  Used xavier weight initialization <br/>
  Used relu activation in hidden states <br/>
- Used softmax with cross entropy in output <br/>
+ Used softmax in output layer <br/>
+ Used cross entropy as a loss function <br/>
  Used early stopping <br/>
  
 # Results:
-- Overall training accuracy: 99.4%
-- Overall training loss: 0.0230
+- Overall training accuracy: 99.6%
+- Overall training loss: 0.0120
 
 ![training_acc](https://user-images.githubusercontent.com/6074821/52183044-a9807f00-280c-11e9-8ac8-523fc344b017.png) ![training_loss](https://user-images.githubusercontent.com/6074821/52183059-cddc5b80-280c-11e9-8f3e-6e9f52b5d0f5.png)
 
-- Validation accuracy: 48.4%
-- Validation loss: 2.5136
+- Validation accuracy: 53.5%
+- Validation loss: 2.1864
 
 ![valid_acc](https://user-images.githubusercontent.com/6074821/52183076-f7958280-280c-11e9-9c41-db77f01c370b.png)
 ![valid_loss](https://user-images.githubusercontent.com/6074821/52183078-067c3500-280d-11e9-8523-17bba2698fdc.png)
 
-- Test accuracy: 55.6%
-- Test loss: 2.1843
+- Test accuracy: 56.8%
+- Test loss: 2.0936
 
 **Some predictions from test set:** <br/>
 ![predictions3](https://user-images.githubusercontent.com/6074821/52183101-44795900-280d-11e9-8c38-e884a1b82a57.png)
@@ -89,7 +93,7 @@ This script will download the CIFAR-100 dataset.
 This script will extract the CIFAR-100 dataset.
 
 ### PreprocessData.py:
-This script will load the data, normalize it, shuffle it, take 2k images from training as dev set, and save it in a pickle file.
+This script will load the data, normalize it, shuffle it, take 2k images from test set as a dev set, and save it in a pickle file.
 
 ### TrainModel.py:
 This script will begin training on the training data and output the results(including on test set after it finishes training) and save the accuracy and loss graphs in output_images folder, and save the graph info for tensorboard in graph_info folder, and save the model itself in saved_model
