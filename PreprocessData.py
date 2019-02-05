@@ -86,25 +86,25 @@ def get_valid_set(dataset, labels, count_per_class=20, num_classes=100):
     valid_labels = np.zeros((valid_size), dtype='int32')
 
     valid_index = 0
-    indices_to_del = []
+    # indices_to_del = []
     for i in range(dataset.shape[0]):
         if labels[i] >= count_per_class:
             continue
         valid_dataset[valid_index] = dataset[i]
         valid_labels[valid_index] = labels[i]
-        indices_to_del.append(i)
+        # indices_to_del.append(i)
         valid_index = valid_index + 1
         counter[labels[i]] = counter[labels[i]] + 1
         if (valid_index == valid_size):
             break
 
-    dataset = np.delete(dataset, indices_to_del, axis=0)
-    labels = np.delete(labels, indices_to_del)
-    return dataset, labels, valid_dataset, valid_labels
+    # dataset = np.delete(dataset, indices_to_del, axis=0)
+    # labels = np.delete(labels, indices_to_del)
+    return  valid_dataset, valid_labels
 
 print("Pickling Normalized Data..")
 
-train_data, train_labels, valid_data, valid_labels = get_valid_set(train_data, train_labels)
+valid_data, valid_labels = get_valid_set(test_data, test_labels)
 
 pickle_file = 'CIFAR_100_normalized.pickle'
 

@@ -69,7 +69,7 @@ def accuracy(predictions, labels):
 
 
 images_labels = 100  # the labels' length for the classifier
-batch_size = 32  # the number of training samples in a single iteration
+batch_size = 40  # the number of training samples in a single iteration
 test_batch_size = 50  # used to calculate test predictions over many iterations to avoid memory issues
 valid_batch_size = 50  # used to calculate validation predictions over many iterations to avoid memory issues
 
@@ -151,8 +151,8 @@ with graph.as_default():
         hidden = tf.layers.batch_normalization(
             inputs=hidden,
             axis=-1,
-            momentum=0.99,
-            epsilon=0.001,
+            momentum=0.97,
+            epsilon=0.00001,
             center=True,
             scale=True,
             training=is_training_ph
@@ -171,8 +171,8 @@ with graph.as_default():
         conv = tf.layers.batch_normalization(
             inputs=conv,
             axis=-1,
-            momentum=0.99,
-            epsilon=0.001,
+            momentum=0.97,
+            epsilon=0.00001,
             center=True,
             scale=True,
             training=is_training_ph
@@ -221,7 +221,7 @@ with graph.as_default():
         # tf.train.exponential_decay(learning_rate, global_step, decay_steps, decay_rate, staircase=False, name=None)
         # decayed_learning_rate = learning_rate *decay_rate ^ (global_step / decay_steps)
         global_step = tf.Variable(0, trainable=False)
-        learning_rate = tf.train.exponential_decay(0.0005, global_step, 7000, 0.80, staircase=True)
+        learning_rate = tf.train.exponential_decay(0.0005, global_step, 5000, 0.80, staircase=True)
 
         # Optimizer.
         optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
