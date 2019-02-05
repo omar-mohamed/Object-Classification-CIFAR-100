@@ -106,6 +106,11 @@ This script will open a gui view for you to load an image and classify it using 
 
 ![untitled](https://user-images.githubusercontent.com/6074821/52183394-2d883600-2810-11e9-8164-c57fa0c7867e.jpg)
 
+# Future work:
+
+-Try different architectures (resnets, inception)
+-Try hierarchical softmax since the labels of CIFAR come in 2 categories (soft label,hard label)
+
 # Environment Used:
 - Python 3.6.1
 - Tensorflow 1.9
