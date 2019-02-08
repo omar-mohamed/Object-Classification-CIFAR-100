@@ -108,8 +108,8 @@ This script will open a gui view for you to load an image and classify it using 
 
 # Future work:
 
--Try different architectures (resnets, inception)
--Try hierarchical softmax since the labels of CIFAR come in 2 categories (soft label,hard label)
+- Try different architectures (resnets, inception) 
+- Try hierarchical softmax since the labels of CIFAR come in 2 categories (soft label,hard label) 
 
 # Environment Used:
 - Python 3.6.1
