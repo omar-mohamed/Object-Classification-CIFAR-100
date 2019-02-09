@@ -19,7 +19,7 @@ Link: [CIFAR_100_Dataset](https://www.cs.toronto.edu/~kriz/cifar.html)
 - 10k as a test set
 
 # Preprocessing:
--Normalized pixel values to be between -1 and 1
+- Normalized pixel values to be between -1 and 1
 
 # Training Method:
 
