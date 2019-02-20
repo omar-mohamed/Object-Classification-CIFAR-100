@@ -264,7 +264,7 @@ valid_accuracy = []
 valid_accuracy_iteration = []
 
 test_accuracy = 0
-early_stop_counter = 7  # stop if validation loss is not decreasing for early_stop_counter iterations
+early_stop_counter = 5  # stop if validation loss is not decreasing for early_stop_counter iterations
 
 print("Training CNN")
 
@@ -359,8 +359,8 @@ with tf.Session(graph=graph, config=tf.ConfigProto(log_device_placement=True)) a
             size = len(valid_loss)
             if size > early_stop_counter:
                 should_stop = True
-                for i in range(early_stop_counter + 1):
-                    if l < valid_loss[size - 1 - i]:
+                for i in range(early_stop_counter):
+                    if valid_loss[size-1-i] <= valid_loss[size-2-i]:
                         should_stop = False
                         break
                 if should_stop:
