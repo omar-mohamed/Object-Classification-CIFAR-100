@@ -19,7 +19,13 @@ Link: [CIFAR_100_Dataset](https://www.cs.toronto.edu/~kriz/cifar.html)
 - 10k as a test set
 
 # Preprocessing:
-- Normalized pixel values to be between -1 and 1
+- Used [Unsharp masking kernel](https://en.wikipedia.org/wiki/Unsharp_masking) to sharpen the blurry images 
+
+![image](https://user-images.githubusercontent.com/6074821/53117205-0ee5a700-3553-11e9-969c-e5bc84c2299b.png)
+
+- Normalized pixel values to be between -1 and 1 (done during training)
+- Used data augmentation on training set (flip horizontally, crop from edges) (done randomly per training batch)
+
 
 # Training Method:
 
@@ -66,19 +72,20 @@ Link: [CIFAR_100_Dataset](https://www.cs.toronto.edu/~kriz/cifar.html)
  Used early stopping <br/>
  
 # Results:
-- Overall training accuracy: 99.6%
-- Overall training loss: 0.0120
+- Overall training accuracy: 93.3%
+- Overall training loss: 0.2393
 
-![training_acc](https://user-images.githubusercontent.com/6074821/52183044-a9807f00-280c-11e9-8ac8-523fc344b017.png) ![training_loss](https://user-images.githubusercontent.com/6074821/52183059-cddc5b80-280c-11e9-8f3e-6e9f52b5d0f5.png)
+![training_acc](https://user-images.githubusercontent.com/6074821/53118141-26259400-3555-11e9-9b13-d2983ffa3f96.png)
+![training_loss](https://user-images.githubusercontent.com/6074821/53118144-2756c100-3555-11e9-8829-9f238f4f1aa0.png)
 
-- Validation accuracy: 53.5%
-- Validation loss: 2.1864
+- Validation accuracy: 61.5%
+- Validation loss: 1.4571
 
-![valid_acc](https://user-images.githubusercontent.com/6074821/52183076-f7958280-280c-11e9-9c41-db77f01c370b.png)
-![valid_loss](https://user-images.githubusercontent.com/6074821/52183078-067c3500-280d-11e9-8523-17bba2698fdc.png)
+![valid_acc](https://user-images.githubusercontent.com/6074821/53118145-2756c100-3555-11e9-89fc-b218e4a79c0f.png)
+![valid_loss](https://user-images.githubusercontent.com/6074821/53118147-27ef5780-3555-11e9-94e7-c47e441906f3.png)
 
-- Test accuracy: 56.8%
-- Test loss: 2.0936
+- Test accuracy: 63.8%
+- Test loss: 1.4320
 
 **Some predictions from test set:** <br/>
 ![predictions3](https://user-images.githubusercontent.com/6074821/52183101-44795900-280d-11e9-8c38-e884a1b82a57.png)
@@ -113,4 +120,6 @@ This script will open a gui view for you to load an image and classify it using 
 
 # Environment Used:
 - Python 3.6.1
-- Tensorflow 1.9
+- Tensorflow 1.10
+- imgaug 0.2.8
+- opencv-python 4.0.0
