@@ -1,5 +1,6 @@
 from tkinter import *
 
+import cv2
 from six.moves import cPickle as pickle
 from tkinter.filedialog import askopenfilename
 from PIL import Image, ImageTk
@@ -8,11 +9,11 @@ import numpy as np
 
 
 class Window(Frame):
-    image_size = 32 # width and height of image
-    num_of_channels = 3 # number of channels in an images
-    prediction_label = -1 # prediction from classifier
+    image_size = 32  # width and height of image
+    num_of_channels = 3  # number of channels in an images
+    prediction_label = -1  # prediction from classifier
     label_names = -1  # names of label indices
-    model_saver = -1 # model to be loaded
+    model_saver = -1  # model to be loaded
 
     # Define settings upon initialization. Here you can specify
     def __init__(self, master=None):
@@ -26,7 +27,7 @@ class Window(Frame):
         self.init_window()
 
         # load label names
-        all_data = pickle.load(open('CIFAR_100_normalized.pickle', 'rb'))
+        all_data = pickle.load(open('CIFAR_100_processed.pickle', 'rb'))
         self.label_names = all_data['label_names']
 
         del all_data
@@ -65,11 +66,13 @@ class Window(Frame):
         self.model_saver = tf.train.import_meta_graph('./best_model/saved_model/model.ckpt.meta')
 
     # a method to normalize values to range [-1,1]
-    def normalization(self, img):
+    def sharpen(self, img):
         # img = self.rgb2gray(img)  # RGB to greyscale
-        pixel_depth = 255.0
-        img=np.array(img)
-        return (np.array(img[:,:,:self.num_of_channels], dtype='float32') - (pixel_depth / 2)) / (pixel_depth / 2)
+        kernel = (-1 / 256.0) * np.array(np.asarray(
+            [[1, 4, 6, 4, 1], [4, 16, 24, 16, 4], [6, 24, -476, 24, 6], [4, 16, 24, 16, 4], [1, 4, 6, 4, 1]]))
+        img = np.array(img)
+        img = cv2.filter2D(img, -1, kernel)
+        return img
 
     def rgb2gray(self, img):
         return np.dot(np.array(img, dtype='float32'), [0.299, 0.587, 0.114])
@@ -112,7 +115,7 @@ class Window(Frame):
         resized = im.resize((image_view_size, image_view_size), Image.ANTIALIAS)
         render = ImageTk.PhotoImage(resized)
         im = im.resize((self.image_size, self.image_size), Image.ANTIALIAS)
-        im_norm = self.normalization(im)
+        im_norm = self.sharpen(im)
 
         img = Label(self, image=render, width=image_view_size, height=image_view_size)
         img.image = render

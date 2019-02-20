@@ -4,13 +4,14 @@ import tensorflow as tf
 from six.moves import cPickle as pickle
 from matplotlib import pyplot as plt
 import random
+from imgaug import augmenters as iaa
 
 # from tensorflow.python.client import device_lib
 # print (device_lib.list_local_devices())
 
 ##################load data#####################
 
-all_data = pickle.load(open('CIFAR_100_normalized.pickle', 'rb'))
+all_data = pickle.load(open('CIFAR_100_processed.pickle', 'rb'))
 train_data = all_data['train_dataset']
 test_data = all_data['test_dataset']
 valid_data = all_data['valid_dataset']
@@ -108,17 +109,24 @@ with graph.as_default():
     is_training_ph = tf.placeholder(tf.bool, name='is_training')
 
 
-    #a method to return convolutional weights
+    def normalize_inputs(inputs):
+        pixel_depth = 255.0
+        return (inputs - (pixel_depth / 2)) / (pixel_depth / 2)
+
+
+    # a method to return convolutional weights
     def get_conv_weight(name, shape):
         return tf.get_variable(name, shape=shape,
                                initializer=tf.contrib.layers.xavier_initializer_conv2d())
 
-    #a method to return bias variable
+
+    # a method to return bias variable
 
     def get_bias_variable(name, shape):
-        return tf.Variable(tf.constant(1.0, shape=shape), name=name)
+        return tf.Variable(tf.constant(0.0, shape=shape), name=name)
 
-    #a method to return fully connected weights
+
+    # a method to return fully connected weights
     def get_fully_connected_weight(name, shape):
         weights = tf.get_variable(name, shape=shape,
                                   initializer=tf.contrib.layers.xavier_initializer())
@@ -144,19 +152,24 @@ with graph.as_default():
     hidden3_weights_c1 = get_fully_connected_weight('hidden3_weights', [num_hidden3, images_labels])
 
 
+    def run_batch_norm(inputs):
+        return tf.layers.batch_normalization(
+            inputs=inputs,
+            axis=-1,
+            momentum=0.997,
+            epsilon=1e-5,
+            center=True,
+            scale=True,
+            training=is_training_ph,
+            fused=True
+        )
+
+
     # method that runs one fully connected layer with batch normalization and dropout
     def run_hidden_layer(x, hidden_weights, keep_dropout_rate=1, use_activation=True):
         hidden = tf.matmul(x, hidden_weights)
 
-        hidden = tf.layers.batch_normalization(
-            inputs=hidden,
-            axis=-1,
-            momentum=0.97,
-            epsilon=0.00001,
-            center=True,
-            scale=True,
-            training=is_training_ph
-        )
+        hidden = run_batch_norm(hidden)
 
         if use_activation:
             hidden = tf.nn.relu(hidden)
@@ -166,17 +179,12 @@ with graph.as_default():
 
     # method that runs one convolution layer with batch normalization
     def run_conv_layer(x, conv_weights):
-        conv = tf.nn.conv2d(x, conv_weights, [1, 1, 1, 1], padding='SAME')
+        conv = run_batch_norm(x)
+
+        conv = tf.nn.conv2d(conv, conv_weights, [1, 1, 1, 1], padding='SAME')
         conv = tf.nn.max_pool(value=conv, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
-        conv = tf.layers.batch_normalization(
-            inputs=conv,
-            axis=-1,
-            momentum=0.97,
-            epsilon=0.00001,
-            center=True,
-            scale=True,
-            training=is_training_ph
-        )
+        conv = run_batch_norm(conv)
+
         conv = tf.nn.relu(conv)
         conv = tf.nn.dropout(conv, conv_keep_prob)
         return conv
@@ -184,7 +192,7 @@ with graph.as_default():
 
     # Model.
     def model(data):
-        hidden = data
+        hidden = normalize_inputs(data)
         # first conv block
         hidden = run_conv_layer(hidden, conv1_weights)
         # second conv block
@@ -256,9 +264,14 @@ valid_accuracy = []
 valid_accuracy_iteration = []
 
 test_accuracy = 0
-early_stop_counter = 3 # stop if validation loss is not decreasing for early_stop_counter iterations
+early_stop_counter = 7  # stop if validation loss is not decreasing for early_stop_counter iterations
 
 print("Training CNN")
+
+seq = iaa.SomeOf((0, None), [
+    iaa.Crop(px=(0, 8)),  # crop images from each side by 0 to 8px (randomly chosen)
+    iaa.Fliplr(0.5)  # horizontally flip 50% of the images
+])
 
 with tf.Session(graph=graph, config=tf.ConfigProto(log_device_placement=True)) as session:
     tf.global_variables_initializer().run()
@@ -291,12 +304,25 @@ with tf.Session(graph=graph, config=tf.ConfigProto(log_device_placement=True)) a
         return overall_acc, overall_loss, predictions
 
 
+    # def disp_sample(dataset, cmap=None):
+    #     items = random.sample(range(dataset.shape[0]), 8)
+    #     for i, item in enumerate(items):
+    #         plt.subplot(2, 4, i + 1)
+    #         plt.axis('off')
+    #         plt.imshow(np.array(dataset[i, :, :],dtype='uint8'), cmap=cmap, interpolation='none')
+    #     plt.show()
+
+
     print('Initialized')
     for step in range(num_steps):
 
         # get mini-batch
         offset = (step * batch_size) % (train_size - batch_size)
         batch_data = train_data[offset:(offset + batch_size), :]
+        # if (step > num_steps / 2):
+        batch_data = seq.augment_images(batch_data)
+        # disp_sample(batch_data)
+        # disp_sample(images_aug)
         batch_labels = train_labels[offset:(offset + batch_size)]
 
         # train on batch and get accuracy and loss
@@ -311,7 +337,7 @@ with tf.Session(graph=graph, config=tf.ConfigProto(log_device_placement=True)) a
             print('Minibatch loss at step %d: %f' % (step, l))
             batch_train_accuracy, _ = accuracy(np.argmax(predictions, axis=1), batch_labels)
             print('Minibatch accuracy: %.1f%%' % batch_train_accuracy)
-            #save data for plotting
+            # save data for plotting
             training_loss.append(l)
             training_loss_iteration.append(step)
             train_accuracy.append(batch_train_accuracy)
@@ -323,7 +349,7 @@ with tf.Session(graph=graph, config=tf.ConfigProto(log_device_placement=True)) a
             print('validation set loss at step %d: %f' % (step, overall_valid_loss))
             print('validation set accuracy: %.1f%%' % acc)
 
-            #used for plotting
+            # used for plotting
             valid_loss.append(overall_valid_loss)
             valid_loss_iteration.append(step)
             valid_accuracy.append(acc)
@@ -376,10 +402,6 @@ plot_x_y(valid_loss_iteration, valid_loss, 'valid_loss.png', 'iteration', 'valid
 
 plot_x_y(valid_accuracy_iteration, valid_accuracy, 'valid_acc.png', 'iteration', 'validation accuracy')
 
-# a method to return values of normalized images to range [0,255]. Used when plotting or saving images
-def denormalization(dataset):
-    pixel_depth = 255.0
-    return np.array(dataset * (pixel_depth / 2) + (pixel_depth / 2), dtype='uint8')
 
 # a method to display and save a sample of the predictions from test set
 def disp_prediction_samples(predictions, dataset, num_images, cmap=None):
@@ -389,7 +411,7 @@ def disp_prediction_samples(predictions, dataset, num_images, cmap=None):
             plt.subplot(2, 4, i + 1)
             plt.axis('off')
             plt.title(label_names[predictions[item]])
-            plt.imshow(denormalization(dataset[item, :, :]), cmap=cmap, interpolation='none')
+            plt.imshow(np.array(dataset[item, :, :], dtype='uint8'), cmap=cmap, interpolation='none')
         plt.savefig('./output_images/' + 'predictions' + str(image_num + 1) + '.png')
         # plt.show()
 

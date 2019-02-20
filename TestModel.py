@@ -6,7 +6,7 @@ from six.moves import cPickle as pickle
 
 ##################load data#####################
 
-all_data = pickle.load(open('CIFAR_100_normalized.pickle', 'rb'))
+all_data = pickle.load(open('CIFAR_100_processed.pickle', 'rb'))
 
 test_data = all_data['test_dataset']
 test_labels = all_data['test_labels']
