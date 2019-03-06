@@ -5,7 +5,7 @@ from six.moves import cPickle as pickle
 from matplotlib import pyplot as plt
 import random
 from imgaug import augmenters as iaa
-
+from DropBlock import DropBlock
 # from tensorflow.python.client import device_lib
 # print (device_lib.list_local_devices())
 
@@ -74,6 +74,7 @@ batch_size = 40  # the number of training samples in a single iteration
 test_batch_size = 50  # used to calculate test predictions over many iterations to avoid memory issues
 valid_batch_size = 50  # used to calculate validation predictions over many iterations to avoid memory issues
 
+drop_block_size = 1 # dropblock size
 patch_size_1 = 7  # convolution filter size 1
 patch_size_2 = 5  # convolution filter size 2
 patch_size_3 = 3  # convolution filter size 3
@@ -82,7 +83,7 @@ patch_size_4 = 3  # convolution filter size 4
 depth1 = 64  # number of filters in first conv layer
 depth2 = 128  # number of filters in second conv layer
 depth3 = 256  # number of filters in third conv layer
-depth4 = 512  # number of filters in first conv layer
+depth4 = 512  # number of filters in fourth conv layer
 
 num_hidden1 = 2048  # the size of the unrolled vector after convolution
 num_hidden2 = 2048  # the size of the hidden neurons in fully connected layer
@@ -133,6 +134,7 @@ with graph.as_default():
         return weights
 
 
+
     # Convolution Variables.
 
     conv1_weights = get_conv_weight('conv1_weights', [patch_size_1, patch_size_1, num_channels, depth1])
@@ -180,19 +182,19 @@ with graph.as_default():
     # method that runs one convolution layer with batch normalization
     def run_conv_layer(x, conv_weights):
         conv = run_batch_norm(x)
-
         conv = tf.nn.conv2d(conv, conv_weights, [1, 1, 1, 1], padding='SAME')
         conv = tf.nn.max_pool(value=conv, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
         conv = run_batch_norm(conv)
-
         conv = tf.nn.relu(conv)
-        conv = tf.nn.dropout(conv, conv_keep_prob)
+        drop_block = DropBlock(keep_prob=conv_keep_prob, block_size=drop_block_size)
+        conv = drop_block(conv, training=is_training_ph)
         return conv
 
 
     # Model.
     def model(data):
         hidden = normalize_inputs(data)
+
         # first conv block
         hidden = run_conv_layer(hidden, conv1_weights)
         # second conv block
@@ -229,7 +231,7 @@ with graph.as_default():
         # tf.train.exponential_decay(learning_rate, global_step, decay_steps, decay_rate, staircase=False, name=None)
         # decayed_learning_rate = learning_rate *decay_rate ^ (global_step / decay_steps)
         global_step = tf.Variable(0, trainable=False)
-        learning_rate = tf.train.exponential_decay(0.0005, global_step, 5000, 0.80, staircase=True)
+        learning_rate = tf.train.exponential_decay(0.0005, global_step, 5000, 0.85, staircase=True)
 
         # Optimizer.
         optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
@@ -264,14 +266,15 @@ valid_accuracy = []
 valid_accuracy_iteration = []
 
 test_accuracy = 0
-early_stop_counter = 5  # stop if validation loss is not decreasing for early_stop_counter iterations
+early_stop_counter = 5   # stop if validation loss is not decreasing for early_stop_counter iterations
 
 print("Training CNN")
 
 seq = iaa.SomeOf((0, None), [
-    iaa.Crop(px=(0, 8)),  # crop images from each side by 0 to 8px (randomly chosen)
-    iaa.Fliplr(0.5)  # horizontally flip 50% of the images
-])
+    iaa.Crop(px=(0, 12)),  # crop images from each side by 0 to 8px (randomly chosen)
+    iaa.Fliplr(0.5),  # horizontally flip 50% of the images
+    iaa.CoarseDropout((0.0, 0.20), size_percent=(0.02, 0.25), per_channel=0.5), # Drop 0 to 20% of all pixels by converting them to black pixels
+], random_order=True)
 
 with tf.Session(graph=graph, config=tf.ConfigProto(log_device_placement=True)) as session:
     tf.global_variables_initializer().run()
@@ -312,7 +315,8 @@ with tf.Session(graph=graph, config=tf.ConfigProto(log_device_placement=True)) a
     #         plt.imshow(np.array(dataset[i, :, :],dtype='uint8'), cmap=cmap, interpolation='none')
     #     plt.show()
 
-
+    train_conv_keep_prob = 0.85
+    train_conv_keep_prob_min = 0.85
     print('Initialized')
     for step in range(num_steps):
 
@@ -327,13 +331,14 @@ with tf.Session(graph=graph, config=tf.ConfigProto(log_device_placement=True)) a
 
         # train on batch and get accuracy and loss
         feed_dict = {tf_inputs: batch_data, tf_labels: batch_labels, fully_connected_keep_prob: 0.5,
-                     conv_keep_prob: 0.85, is_training_ph: True}
+                     conv_keep_prob: train_conv_keep_prob, is_training_ph: True}
         _, l, predictions, lr = session.run(
             [optimize, tf_loss, tf_predictions, learning_rate], feed_dict=feed_dict)
 
         # print results on mini-batch every 200 iteration
         if (step % 200 == 0):
             print('Learning rate at step %d: %.14f' % (step, lr))
+            print('DropBlock keep probability at step %d: %.14f' % (step, train_conv_keep_prob))
             print('Minibatch loss at step %d: %f' % (step, l))
             batch_train_accuracy, _ = accuracy(np.argmax(predictions, axis=1), batch_labels)
             print('Minibatch accuracy: %.1f%%' % batch_train_accuracy)
@@ -348,7 +353,8 @@ with tf.Session(graph=graph, config=tf.ConfigProto(log_device_placement=True)) a
             acc, overall_valid_loss, _ = getAccuracyAndLoss(valid_data, valid_labels, valid_batch_size)
             print('validation set loss at step %d: %f' % (step, overall_valid_loss))
             print('validation set accuracy: %.1f%%' % acc)
-
+            if train_conv_keep_prob > train_conv_keep_prob_min:
+                train_conv_keep_prob = train_conv_keep_prob - 0.005
             # used for plotting
             valid_loss.append(overall_valid_loss)
             valid_loss_iteration.append(step)
