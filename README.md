@@ -15,7 +15,6 @@ Link: [CIFAR_100_Dataset](https://www.cs.toronto.edu/~kriz/cifar.html)
 
 ### Dataset Splitting:
 - 50k Image as a training set
-- 2k Image as a dev set (a subset of the test set)
 - 10k as a test set
 
 # Preprocessing:
@@ -64,7 +63,7 @@ Link: [CIFAR_100_Dataset](https://www.cs.toronto.edu/~kriz/cifar.html)
  **Additional details:** <br/>
  Used Adam Optimizer <br/>
  Used learning rate decay <br/>
- Used mini batch of size 40 <br/>
+ Used mini batch of size 500 <br/>
  Used xavier weight initialization <br/>
  Used relu activation in hidden states <br/>
  Used softmax in output layer <br/>
@@ -72,20 +71,18 @@ Link: [CIFAR_100_Dataset](https://www.cs.toronto.edu/~kriz/cifar.html)
  Used early stopping <br/>
  
 # Results:
-- Overall training accuracy: 93.3%
-- Overall training loss: 0.2393
+- Overall training accuracy: 97.5%
+- Overall training loss: 0.1332
 
-![training_acc](https://user-images.githubusercontent.com/6074821/53118141-26259400-3555-11e9-9b13-d2983ffa3f96.png)
-![training_loss](https://user-images.githubusercontent.com/6074821/53118144-2756c100-3555-11e9-8829-9f238f4f1aa0.png)
+![image](https://user-images.githubusercontent.com/6074821/54309347-9d8c9780-45d8-11e9-95e1-fe7869db44eb.png)
+![image](https://user-images.githubusercontent.com/6074821/54309060-0fb0ac80-45d8-11e9-9b26-a15c67a27589.png)
 
-- Validation accuracy: 61.5%
-- Validation loss: 1.4571
+- Test accuracy: 65.3%
+- Test loss: 1.3090
 
-![valid_acc](https://user-images.githubusercontent.com/6074821/53118145-2756c100-3555-11e9-89fc-b218e4a79c0f.png)
-![valid_loss](https://user-images.githubusercontent.com/6074821/53118147-27ef5780-3555-11e9-94e7-c47e441906f3.png)
+![image](https://user-images.githubusercontent.com/6074821/54309626-2dcadc80-45d9-11e9-9431-9d1933705325.png)
+![image](https://user-images.githubusercontent.com/6074821/54309563-14299500-45d9-11e9-9cc2-eeb0414f09f8.png)
 
-- Test accuracy: 63.8%
-- Test loss: 1.4320
 
 **Some predictions from test set:** <br/>
 ![predictions3](https://user-images.githubusercontent.com/6074821/52183101-44795900-280d-11e9-8c38-e884a1b82a57.png)
@@ -102,8 +99,8 @@ This script will extract the CIFAR-100 dataset.
 ### PreprocessData.py:
 This script will load the data, normalize it, shuffle it, take 2k images from test set as a dev set, and save it in a pickle file.
 
-### TrainModel.py:
-This script will begin training on the training data and output the results(including on test set after it finishes training) and save the accuracy and loss graphs in output_images folder, and save the graph info for tensorboard in graph_info folder, and save the model itself in saved_model
+### TrainCNN.py:
+This script will begin training on the training data, output the results, save the accuracy and loss graphs in output_images folder, save the graph info for tensorboard in graph_info folder, and save the model itself in saved_model
 
 ### TestModel.py:
 This script will load the model saved in best_model folder(which gave the best accuracy overall) and run it on the test set and output the results.
@@ -116,7 +113,7 @@ This script will open a gui view for you to load an image and classify it using 
 # Future work:
 
 - Try different architectures (resnets, inception) 
-- Try hierarchical softmax since the labels of CIFAR come in 2 categories (soft label,hard label) 
+- Try hierarchical softmax since the labels of CIFAR come in 2 categories (soft label, hard label) 
 
 # Environment Used:
 - Python 3.6.1
