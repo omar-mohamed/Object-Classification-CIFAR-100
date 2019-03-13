@@ -76,7 +76,7 @@ print("Shuffling Data..")
 train_data = reshape(train_data)
 test_data = reshape(test_data)
 train_data, train_labels = randomize(train_data, train_labels)
-test_data, test_labels = randomize(test_data, test_labels)
+# test_data, test_labels = randomize(test_data, test_labels)
 
 # normalize
 print("Normalizing Data..")
@@ -110,7 +110,7 @@ def get_valid_set(dataset, labels, count_per_class=20, num_classes=100):
 
 print("Pickling Normalized Data..")
 
-valid_data, valid_labels = get_valid_set(test_data, test_labels)
+# valid_data, valid_labels = get_valid_set(test_data, test_labels)
 
 pickle_file = 'CIFAR_100_processed.pickle'
 
@@ -120,8 +120,6 @@ try:
     save = {
         'train_dataset': train_data,
         'train_labels': train_labels,
-        'valid_dataset': valid_data,
-        'valid_labels': valid_labels,
         'test_dataset': test_data,
         'test_labels': test_labels,
         'label_names': label_names
