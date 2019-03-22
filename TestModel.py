@@ -15,7 +15,7 @@ del all_data
 
 #################Format test data###################
 
-num_channels = 3  # grayscale
+num_channels = 3  
 image_size = 32
 
 def reformat(dataset):
@@ -59,8 +59,7 @@ with tf.Session() as sess:
 
     # get test predictions in steps to avoid memory problems
     test_pred = np.zeros((test_size, images_labels))
-    for step in range(int(test_size / test_batch_size)):
-        offset = (step * test_batch_size) % (test_size - test_batch_size)
+    for offset in range(0, test_size, test_batch_size):
         batch_data = test_data[offset:(offset + test_batch_size), :]
         feed_dict = {inputs: batch_data, fc_keep_prob: 1.0, conv_keep_prob: 1.0, is_training: False}
         predictions = sess.run(

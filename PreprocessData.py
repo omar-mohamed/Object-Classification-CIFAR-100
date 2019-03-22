@@ -79,7 +79,7 @@ train_data, train_labels = randomize(train_data, train_labels)
 # test_data, test_labels = randomize(test_data, test_labels)
 
 # normalize
-print("Normalizing Data..")
+print("Sharpening Data..")
 disp_sample_dataset(train_data, train_labels, label_names)
 
 train_data = sharpen(train_data)
