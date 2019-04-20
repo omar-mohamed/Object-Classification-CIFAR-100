@@ -28,42 +28,46 @@ Link: [CIFAR_100_Dataset](https://www.cs.toronto.edu/~kriz/cifar.html)
 
 # Training Method:
 
- **Used convolutional neural nets**
-![1 vkq0hxdaqv57salxajquxa](https://user-images.githubusercontent.com/6074821/52169534-a6b95780-2742-11e9-9a16-c0fab98bbd1b.jpeg)
+We tried different models and techniques like normal CNNs, Depth-wise separable convolution, and resnets. Resnets provided the best results
+
+![image](https://user-images.githubusercontent.com/6074821/56460821-27ced500-63a9-11e9-8e3d-444af6d725ad.png)
 
  **Used the following architecture:** <br/>
  
- Conv layer 1: 64 filters with size of 7x7. <br/>
- Max Pooling layer: filter size 2x2. <br/>
- BatchNorm layer. <br/>
- Dropout with Keep prob : 0.85. <br/>
+ Residual block 1: 128 filters with size of 3x3. <br/>
+ Dropblock: filter size 5x5. <br/>
+ Maxpool layer with size 3x3. <br/>
  
- Conv layer 2: 128 filters with size of 5x5. <br/>
- Max Pooling layer: filter size 2x2. <br/>
- BatchNorm layer. <br/>
- Dropout with Keep prob : 0.85. <br/>
+ Residual block 2: 256 filters with size of 3x3. <br/>
+ Dropblock: filter size 5x5. <br/>
+ Maxpool layer with size 3x3. <br/>
  
- Conv layer 3: 256 filters with size of 3x3. <br/>
- Max Pooling layer: filter size 2x2. <br/>
- BatchNorm layer. <br/>
- Dropout with Keep prob : 0.85. <br/>
+ Residual block 3: 512 filters with size of 3x3. <br/>
+ Dropblock: filter size 5x5. <br/>
+ Maxpool layer with size 3x3. <br/>
  
- Conv layer 4: 512 filters with size of 3x3. <br/>
- Max Pooling layer: filter size 2x2. <br/>
- BatchNorm layer. <br/>
- Dropout with Keep prob : 0.85. <br/>
+ Residual block 4: 1024 filters with size of 3x3. <br/>
+ Dropblock: filter size 5x5. <br/>
+ Maxpool layer with size 3x3. <br/>
  
- Fully connected layer 1: 2048 hidden neurons <br/>
+ Fully connected layer 1: 4096 hidden neurons <br/>
  Dropout with Keep prob : 0.5. <br/>
- Fully connected layer 2: 2048 hidden neurons <br/>
+ Fully connected layer 2: 4096 hidden neurons <br/>
  Dropout with Keep prob : 0.5. <br/>
- Fully connected layer 3: 2048 hidden neurons <br/>
+ Fully connected layer 3: 4096 hidden neurons <br/>
  Dropout with Keep prob : 0.5. <br/>
+ 
+ With each residual block consisting of:<br/>
+ Batch norm. <br/>
+ Convolution. <br/>
+ Batch norm. <br/>
+ Convolution. <br/>
+ 
 
  **Additional details:** <br/>
  Used Adam Optimizer <br/>
  Used learning rate decay <br/>
- Used mini batch of size 500 <br/>
+ Used mini batch of size 250 <br/>
  Used xavier weight initialization <br/>
  Used relu activation in hidden states <br/>
  Used softmax in output layer <br/>
@@ -71,18 +75,17 @@ Link: [CIFAR_100_Dataset](https://www.cs.toronto.edu/~kriz/cifar.html)
  Used early stopping <br/>
  
 # Results:
-- Overall training accuracy: 97.5%
-- Overall training loss: 0.1332
+- Overall training accuracy: 99.5%
+- Overall training loss: 0.0300
 
-![image](https://user-images.githubusercontent.com/6074821/54309347-9d8c9780-45d8-11e9-95e1-fe7869db44eb.png)
-![image](https://user-images.githubusercontent.com/6074821/54309060-0fb0ac80-45d8-11e9-9b26-a15c67a27589.png)
+![image](https://user-images.githubusercontent.com/6074821/56460395-50070580-63a2-11e9-935f-3fb869fd0f90.png)
+![image](https://user-images.githubusercontent.com/6074821/56460400-5ac19a80-63a2-11e9-9aae-d717f55dbf84.png)
 
-- Test accuracy: 65.3%
-- Test loss: 1.3090
+- Test accuracy: 70.7%
+- Test loss:  1.2815
 
-![image](https://user-images.githubusercontent.com/6074821/54309626-2dcadc80-45d9-11e9-9431-9d1933705325.png)
-![image](https://user-images.githubusercontent.com/6074821/54309563-14299500-45d9-11e9-9cc2-eeb0414f09f8.png)
-
+![image](https://user-images.githubusercontent.com/6074821/56460401-63b26c00-63a2-11e9-9576-5fdf1491a46e.png)
+![image](https://user-images.githubusercontent.com/6074821/56460402-6b721080-63a2-11e9-9367-81e6e5eb1e21.png)
 
 **Some predictions from test set:** <br/>
 ![predictions3](https://user-images.githubusercontent.com/6074821/52183101-44795900-280d-11e9-8c38-e884a1b82a57.png)
@@ -100,7 +103,13 @@ This script will extract the CIFAR-100 dataset.
 This script will load the data, normalize it, shuffle it, take 2k images from test set as a dev set, and save it in a pickle file.
 
 ### TrainCNN.py:
-This script will begin training on the training data, output the results, save the accuracy and loss graphs in output_images folder, save the graph info for tensorboard in graph_info folder, and save the model itself in saved_model
+This script will begin training the vanilla CNN model on the training data, output the results, save the accuracy and loss graphs in output_images folder, save the graph info for tensorboard in graph_info folder, and save the model itself in saved_model. You can expect around 65% accuracy on test set.
+
+### TrainDepthwiseCNN.py:
+This script will begin training the faster depth-wise CNN model on the training data, output the results, save the accuracy and loss graphs in output_images folder, save the graph info for tensorboard in graph_info folder, and save the model itself in saved_model. You can expect around 60% accuracy on test set.
+
+### TrainResNetCNN.py:
+This script will begin training the resnet model described above on the training data, output the results, save the accuracy and loss graphs in output_images folder, save the graph info for tensorboard in graph_info folder, and save the model itself in saved_model. You can expect around 70% accuracy on test set.
 
 ### TestModel.py:
 This script will load the model saved in best_model folder(which gave the best accuracy overall) and run it on the test set and output the results.
@@ -111,8 +120,7 @@ This script will open a gui view for you to load an image and classify it using 
 ![untitled](https://user-images.githubusercontent.com/6074821/52183394-2d883600-2810-11e9-8164-c57fa0c7867e.jpg)
 
 # Future work:
-
-- Try different architectures (resnets, inception) 
+- Try different architectures 
 - Try hierarchical softmax since the labels of CIFAR come in 2 categories (soft label, hard label) 
 
 # Environment Used:
