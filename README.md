@@ -108,7 +108,7 @@ This script will begin training the vanilla CNN model on the training data, outp
 ### TrainDepthwiseCNN.py:
 This script will begin training the faster depth-wise CNN model on the training data, output the results, save the accuracy and loss graphs in output_images folder, save the graph info for tensorboard in graph_info folder, and save the model itself in saved_model. You can expect around 60% accuracy on test set.
 
-### TrainResNetCNN.py:
+### TrainResNet.py:
 This script will begin training the resnet model described above on the training data, output the results, save the accuracy and loss graphs in output_images folder, save the graph info for tensorboard in graph_info folder, and save the model itself in saved_model. You can expect around 70% accuracy on test set.
 
 ### TestModel.py:
