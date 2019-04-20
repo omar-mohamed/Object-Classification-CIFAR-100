@@ -170,50 +170,33 @@ with graph.as_default():
 
             return conv
 
+    # method that runs one residual block with dropblock and maxbool
+    def run_residual_block(x, layer_name, patch_size, input_depth, output_depth):
+        with tf.variable_scope(layer_name):
+            hidden1 = run_conv_block(x, "conv_block_1", patch_size, input_depth, output_depth)
+            hidden1 = tf.nn.relu(hidden1)
+            hidden2 = run_conv_block(hidden1, "conv_block_2", patch_size, output_depth, output_depth)
+            hidden = tf.nn.relu(hidden1 + hidden2)
+
+            drop_block = DropBlock(keep_prob=conv_keep_prob, block_size=drop_block_size)
+            hidden = drop_block(hidden, training=is_training_ph)
+
+            hidden = tf.nn.max_pool(value=hidden, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME')
+
+            return hidden
+
 
     # Model.
     def model(data):
         hidden = normalize_inputs(data)
 
-        hidden1 = run_conv_block(hidden, "conv_block_1", patch_size_1, num_channels, depth1)
-        hidden1 = tf.nn.relu(hidden1)
-        hidden2 = run_conv_block(hidden1, "conv_block_2", patch_size_1, depth1, depth1)
-        hidden = tf.nn.relu(hidden1 + hidden2)
+        hidden = run_residual_block(hidden, "residual_block_1", patch_size_1, num_channels, depth1)
 
-        drop_block = DropBlock(keep_prob=conv_keep_prob, block_size=drop_block_size)
-        hidden = drop_block(hidden, training=is_training_ph)
+        hidden = run_residual_block(hidden, "residual_block_2", patch_size_2, depth1, depth2)
 
-        hidden = tf.nn.max_pool(value=hidden, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME')
+        hidden = run_residual_block(hidden, "residual_block_3", patch_size_3, depth2, depth3)
 
-        hidden1 = run_conv_block(hidden, "conv_block_3", patch_size_2, depth1, depth2)
-        hidden1 = tf.nn.relu(hidden1)
-        hidden2 = run_conv_block(hidden1, "conv_block_4", patch_size_2, depth2, depth2)
-        hidden = tf.nn.relu(hidden1 + hidden2)
-
-        drop_block = DropBlock(keep_prob=conv_keep_prob, block_size=drop_block_size)
-        hidden = drop_block(hidden, training=is_training_ph)
-
-        hidden = tf.nn.max_pool(value=hidden, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME')
-
-        hidden1 = run_conv_block(hidden, "conv_block_5", patch_size_3, depth2, depth3)
-        hidden1 = tf.nn.relu(hidden1)
-        hidden2 = run_conv_block(hidden1, "conv_block_6", patch_size_3, depth3, depth3)
-        hidden = tf.nn.relu(hidden1 + hidden2)
-
-        drop_block = DropBlock(keep_prob=conv_keep_prob, block_size=drop_block_size)
-        hidden = drop_block(hidden, training=is_training_ph)
-
-        hidden = tf.nn.max_pool(value=hidden, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME')
-
-        hidden1 = run_conv_block(hidden, "conv_block_7", patch_size_4, depth3, depth4)
-        hidden1 = tf.nn.relu(hidden1)
-        hidden2 = run_conv_block(hidden1, "conv_block_8", patch_size_4, depth4, depth4)
-        hidden = tf.nn.relu(hidden1 + hidden2)
-
-        drop_block = DropBlock(keep_prob=conv_keep_prob, block_size=drop_block_size)
-        hidden = drop_block(hidden, training=is_training_ph)
-
-        hidden = tf.nn.max_pool(value=hidden, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME')
+        hidden = run_residual_block(hidden, "residual_block_4", patch_size_4, depth3, depth4)
 
         # flatten
         hidden = tf.contrib.layers.flatten(hidden)
